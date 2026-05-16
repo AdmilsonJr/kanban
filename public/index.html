@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KANBAN.SYS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0A0A0F;
+            --surface: #111118;
+            --border: #1E1E2E;
+            --cyan: #00F5D4;
+            --purple: #7B2FFF;
+            --text-pri: #E8E8F0;
+            --text-sec: #5A5A7A;
+            --error: #FF2D2D;
+            --success: #00C896;
+            --font-title: 'Rajdhani', sans-serif;
+            --font-body: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-pri);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-position: center center;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-base);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--cyan);
+            border-radius: 3px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-title);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .view {
+            display: none;
+            min-height: 100vh;
+            padding: 2rem;
+            animation: fadeUp 0.4s ease-out forwards;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* AUTH VIEW */
+        #auth-view {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #auth-view.active {
+            display: flex;
+        }
+        .auth-card {
+            background: rgba(17, 17, 24, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border-top: 2px solid var(--purple);
+            position: relative;
+        }
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: 0;
+            width: 30%; height: 2px;
+            background: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan);
+        }
+        .auth-card h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--cyan);
+        }
+        .auth-toggle {
+            font-size: 0.85rem;
+            color: var(--text-sec);
+            margin-top: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .auth-toggle:hover {
+            color: var(--cyan);
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-sec);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .form-control {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-pri);
+            padding: 0.75rem 1rem;
+            font-family: var(--font-body);
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 8px rgba(0, 245, 212, 0.2);
+        }
+        .btn {
+            background: transparent;
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
+            padding: 0.75rem 1.5rem;
+            font-family: var(--font-body);
+            font-weight: 500;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .btn:hover {
+            background: rgba(0, 245, 212, 0.1);
+            box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+        }
+        .btn-primary {
+            background: var(--purple);
+            color: var(--text-pri);
+            border-color: var(--purple);
+        }
+        .btn-primary:hover {
+            background: transparent;
+            box-shadow: 0 0 15px rgba(123, 47, 255, 0.6);
+        }
+
+        /* MAIN VIEW */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+        .logo {
+            font-family: var(--font-title);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--cyan);
+            text-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+            letter-spacing: 2px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .user-name {
+            color: var(--text-sec);
+            font-size: 0.9rem;
+        }
+        .btn-logout {
+            border-color: var(--error);
+            color: var(--error);
+            padding: 0.4rem 1rem;
+            width: auto;
+            font-size: 0.8rem;
+        }
+        .btn-logout:hover {
+            background: rgba(255, 45, 45, 0.1);
+            box-shadow: 0 0 10px rgba(255, 45, 45, 0.4);
+        }
+
+        /* DASHBOARD */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        .metric-card {
+            background: rgba(17, 17, 24, 0.6);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 4px;
+            position: relative;
+        }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px; right: -1px;
+            height: 2px;
+        }
+        .metric-card:nth-child(1)::before { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+        .metric-card:nth-child(2)::before { background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+        .metric-card:nth-child(3)::before { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .metric-card:nth-child(4)::before { background: var(--error); box-shadow: 0 0 8px var(--error); }
+        
+        .metric-title {
+            font-size: 0.8rem;
+            color: var(--text-sec);
+            margin-bottom: 0.5rem;
+        }
+        .metric-value {
+            font-family: var(--font-title);
+            font-size: 2.5rem;
+            color: var(--text-pri);
+            line-height: 1;
+        }
+
+        /* KANBAN BOARD */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+        @media (max-width: 768px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .kanban-col {
+            background: rgba(17, 17, 24, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            height: 65vh;
+            transition: all 0.3s;
+        }
+        .kanban-col.drag-over {
+            border-color: var(--cyan);
+            box-shadow: inset 0 0 20px rgba(0, 245, 212, 0.1);
+        }
+        
+        .col-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .col-title {
+            font-size: 1.2rem;
+            color: var(--text-pri);
+        }
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-sec);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: color 0.2s;
+        }
+        .btn-icon:hover {
+            color: var(--cyan);
+        }
+        
+        .task-list {
+            padding: 1rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        /* TASK CARD */
+        .task-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 2px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            position: relative;
+            animation: fadeUp 0.3s ease-out;
+        }
+        .task-card:active {
+            cursor: grabbing;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--cyan);
+            box-shadow: 0 4px 15px rgba(0, 245, 212, 0.15);
+        }
+        .task-card.dragging {
+            opacity: 0.5;
+            border-style: dashed;
+        }
+        .task-card.overdue {
+            border-color: var(--error);
+            box-shadow: inset 0 0 10px rgba(255, 45, 45, 0.1);
+        }
+        .task-card.overdue:hover {
+            box-shadow: 0 4px 15px rgba(255, 45, 45, 0.3);
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        .task-title {
+            font-family: var(--font-title);
+            font-size: 1.1rem;
+            margin-right: 0.5rem;
+            word-break: break-word;
+        }
+        .task-card.completed .task-title {
+            text-decoration: line-through;
+            color: var(--text-sec);
+        }
+        .task-actions {
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .task-card:hover .task-actions {
+            opacity: 1;
+        }
+        .task-desc {
+            font-size: 0.8rem;
+            color: var(--text-sec);
+            margin-bottom: 1rem;
+            word-break: break-word;
+        }
+        
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+        .task-date {
+            color: var(--purple);
+        }
+        .task-card.overdue .task-date {
+            color: var(--error);
+            font-weight: bold;
+        }
+        .badge-overdue {
+            background: rgba(255, 45, 45, 0.2);
+            color: var(--error);
+            padding: 0.2rem 0.5rem;
+            border-radius: 2px;
+            font-size: 0.7rem;
+            margin-left: auto;
+        }
+        
+        /* CUSTOM CHECKBOX */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .checkbox-wrapper input {
+            display: none;
+        }
+        .checkmark {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--text-sec);
+            border-radius: 2px;
+            display: inline-block;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .checkbox-wrapper:hover .checkmark {
+            border-color: var(--cyan);
+        }
+        .checkbox-wrapper input:checked + .checkmark {
+            background: var(--cyan);
+            border-color: var(--cyan);
+        }
+        .checkbox-wrapper input:checked + .checkmark::after {
+            content: '';
+            position: absolute;
+            left: 5px; top: 1px;
+            width: 4px; height: 9px;
+            border: solid var(--bg-base);
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 4px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-top: 2px solid var(--cyan);
+            animation: fadeUp 0.3s ease-out;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-title {
+            color: var(--cyan);
+            font-size: 1.5rem;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        /* ALERTS */
+        .alert {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 2px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .alert.error {
+            background: rgba(255, 45, 45, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- AUTH VIEW -->
+        <div id="auth-view" class="view">
+            <div class="auth-card">
+                <h2 id="auth-title">LOGIN.SYS</h2>
+                <div id="auth-alert" class="alert"></div>
+                
+                <form id="auth-form">
+                    <div class="form-group" id="name-group" style="display: none;">
+                        <label>Nome do Operador</label>
+                        <input type="text" id="auth-name" class="form-control" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail de Acesso</label>
+                        <input type="email" id="auth-email" class="form-control" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Chave de Segurança (Senha)</label>
+                        <input type="password" id="auth-password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="auth-submit-btn">INICIAR SESSÃO</button>
+                </form>
+                
+                <div class="auth-toggle" id="auth-toggle-btn">
+                    > Solicitar novo acesso (Registrar-se)
+                </div>
+            </div>
+        </div>
+        
+        <!-- MAIN VIEW -->
+        <div id="main-view" class="view">
+            <header>
+                <div class="logo">KANBAN.SYS</div>
+                <div class="user-info">
+                    <span class="user-name" id="display-user-name">OPERADOR: UNKNOWN</span>
+                    <button class="btn btn-logout" id="logout-btn">ENCERRAR</button>
+                </div>
+            </header>
+
+            <div class="dashboard">
+                <div class="metric-card">
+                    <div class="metric-title">TOTAL DE TAREFAS</div>
+                    <div class="metric-value" id="metric-total">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">EM EXECUÇÃO</div>
+                    <div class="metric-value" id="metric-doing">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">CONCLUÍDAS</div>
+                    <div class="metric-value" id="metric-done">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">EM ATRASO</div>
+                    <div class="metric-value" id="metric-overdue" style="color: var(--error)">0</div>
+                </div>
+            </div>
+
+            <div class="kanban-board">
+                <!-- TODO COLUMN -->
+                <div class="kanban-col" data-status="todo">
+                    <div class="col-header">
+                        <h3 class="col-title">A FAZER</h3>
+                        <button class="btn-icon add-task-btn" data-status="todo">+</button>
+                    </div>
+                    <div class="task-list" id="list-todo"></div>
+                </div>
+
+                <!-- DOING COLUMN -->
+                <div class="kanban-col" data-status="doing">
+                    <div class="col-header">
+                        <h3 class="col-title" style="color: var(--purple);">FAZENDO</h3>
+                    </div>
+                    <div class="task-list" id="list-doing"></div>
+                </div>
+
+                <!-- DONE COLUMN -->
+                <div class="kanban-col" data-status="done">
+                    <div class="col-header">
+                        <h3 class="col-title" style="color: var(--success);">CONCLUÍDO</h3>
+                    </div>
+                    <div class="task-list" id="list-done"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TASK MODAL -->
+    <div class="modal-overlay" id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">NOVA TAREFA</h3>
+                <button class="btn-icon" id="close-modal-btn">✕</button>
+            </div>
+            <div id="task-alert" class="alert"></div>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                <input type="hidden" id="task-status">
+                
+                <div class="form-group">
+                    <label>Título (Obrigatório)</label>
+                    <input type="text" id="task-title" class="form-control" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="task-desc" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Prazo (Opcional)</label>
+                    <input type="date" id="task-date" class="form-control">
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn" id="cancel-modal-btn" style="width: auto;">CANCELAR</button>
+                    <button type="submit" class="btn btn-primary" style="width: auto;">SALVAR REGISTRO</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // STATE
+        let currentUser = null;
+        let token = localStorage.getItem('kanban_token');
+        let tasks = [];
+        let isLoginMode = true;
+        let draggedTaskId = null;
+
+        const API_URL = '/api';
+
+        // DOM ELEMENTS
+        const authView = document.getElementById('auth-view');
+        const mainView = document.getElementById('main-view');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const nameGroup = document.getElementById('name-group');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const authAlert = document.getElementById('auth-alert');
+        
+        const taskModal = document.getElementById('task-modal');
+        const taskForm = document.getElementById('task-form');
+        const taskAlert = document.getElementById('task-alert');
+
+        // INIT
+        async function init() {
+            if (token) {
+                const success = await fetchTasks();
+                if (success) {
+                    const userData = localStorage.getItem('kanban_user');
+                    if (userData) {
+                        currentUser = JSON.parse(userData);
+                        document.getElementById('display-user-name').textContent = `OPERADOR: ${currentUser.name}`;
+                    }
+                    showView('main');
+                } else {
+                    logout();
+                }
+            } else {
+                showView('auth');
+            }
+        }
+
+        // UTILS
+        function showView(view) {
+            authView.classList.remove('active');
+            mainView.classList.remove('active');
+            if (view === 'auth') authView.classList.add('active');
+            if (view === 'main') mainView.classList.add('active');
+        }
+
+        function showError(element, msg) {
+            element.textContent = msg;
+            element.classList.add('error');
+            setTimeout(() => { element.classList.remove('error'); }, 5000);
+        }
+
+        function getAuthHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        function checkOverdue(dueDateStr, completed) {
+            if (!dueDateStr || completed) return false;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const dueDate = new Date(dueDateStr);
+            // Ensure local timezone conversion
+            dueDate.setMinutes(dueDate.getMinutes() + dueDate.getTimezoneOffset());
+            return dueDate < today;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        // AUTHENTICATION
+        authToggleBtn.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                authTitle.textContent = 'LOGIN.SYS';
+                nameGroup.style.display = 'none';
+                authSubmitBtn.textContent = 'INICIAR SESSÃO';
+                authToggleBtn.textContent = '> Solicitar novo acesso (Registrar-se)';
+                document.getElementById('auth-name').removeAttribute('required');
+            } else {
+                authTitle.textContent = 'REGISTRO.SYS';
+                nameGroup.style.display = 'block';
+                authSubmitBtn.textContent = 'CRIAR ACESSO';
+                authToggleBtn.textContent = '> Já possuo credenciais (Login)';
+                document.getElementById('auth-name').setAttribute('required', 'true');
+            }
+            authAlert.classList.remove('error');
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const name = document.getElementById('auth-name').value;
+            
+            const endpoint = isLoginMode ? '/auth/login' : '/auth/register';
+            const body = isLoginMode ? { email, password } : { name, email, password };
+
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.error || 'Erro na autenticação');
+                
+                token = data.data.token;
+                currentUser = data.data.user;
+                localStorage.setItem('kanban_token', token);
+                localStorage.setItem('kanban_user', JSON.stringify(currentUser));
+                
+                document.getElementById('display-user-name').textContent = `OPERADOR: ${currentUser.name}`;
+                authForm.reset();
+                init();
+            } catch (err) {
+                showError(authAlert, err.message);
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', logout);
+
+        function logout() {
+            token = null;
+            currentUser = null;
+            tasks = [];
+            localStorage.removeItem('kanban_token');
+            localStorage.removeItem('kanban_user');
+            showView('auth');
+        }
+
+        // TASKS API
+        async function fetchTasks() {
+            try {
+                const res = await fetch(`${API_URL}/tasks`, { headers: getAuthHeaders() });
+                if (res.status === 401) return false;
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                
+                tasks = data.data;
+                renderBoard();
+                return true;
+            } catch (err) {
+                console.error(err);
+                return false;
+            }
+        }
+
+        async function saveTask(taskData, id = null) {
+            const method = id ? 'PUT' : 'POST';
+            const endpoint = id ? `/tasks/${id}` : '/tasks';
+            
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, {
+                    method,
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(taskData)
+                });
+                if (res.status === 401) return logout();
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                
+                await fetchTasks();
+                closeModal();
+            } catch (err) {
+                showError(taskAlert, err.message);
+            }
+        }
+
+        async function updateTaskStatus(id, newStatus) {
+            try {
+                const res = await fetch(`${API_URL}/tasks/${id}/status`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.status === 401) return logout();
+                await fetchTasks();
+            } catch (err) {
+                console.error(err);
+                await fetchTasks(); // revert visually
+            }
+        }
+
+        async function toggleComplete(id, completed) {
+            try {
+                // Optimistic UI update
+                const task = tasks.find(t => t.id === id);
+                if (task) {
+                    task.completed = completed;
+                    task.status = completed ? 'done' : 'doing';
+                    renderBoard();
+                }
+
+                const res = await fetch(`${API_URL}/tasks/${id}/complete`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ completed })
+                });
+                if (res.status === 401) return logout();
+
+                // Automatically change status based on completion
+                const newStatus = completed ? 'done' : 'doing';
+                await fetch(`${API_URL}/tasks/${id}/status`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                await fetchTasks();
+            } catch (err) {
+                console.error(err);
+                await fetchTasks();
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('Excluir este registro permanentemente?')) return;
+            try {
+                const res = await fetch(`${API_URL}/tasks/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (res.status === 401) return logout();
+                await fetchTasks();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // RENDER
+        function renderBoard() {
+            const lists = {
+                todo: document.getElementById('list-todo'),
+                doing: document.getElementById('list-doing'),
+                done: document.getElementById('list-done')
+            };
+
+            // Clear lists
+            Object.values(lists).forEach(list => list.innerHTML = '');
+
+            let metrics = { total: tasks.length, doing: 0, done: 0, overdue: 0 };
+
+            tasks.forEach(task => {
+                const isOverdue = checkOverdue(task.dueDate, task.completed);
+                
+                if (task.status === 'doing') metrics.doing++;
+                if (task.completed) metrics.done++;
+                if (isOverdue) metrics.overdue++;
+
+                const card = document.createElement('div');
+                card.className = `task-card ${task.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`;
+                card.draggable = true;
+                card.dataset.id = task.id;
+
+                card.innerHTML = `
+                    <div class="task-header">
+                        <div class="task-title">${escapeHTML(task.title)}</div>
+                        <div class="task-actions">
+                            <button class="btn-icon" onclick="openModal('${task.id}')" title="Editar">✎</button>
+                            <button class="btn-icon" onclick="deleteTask('${task.id}')" title="Excluir" style="color: var(--error)">✕</button>
+                        </div>
+                    </div>
+                    ${task.description ? `<div class="task-desc">${escapeHTML(task.description)}</div>` : ''}
+                    <div class="task-footer">
+                        <label class="checkbox-wrapper" onclick="event.stopPropagation()">
+                            <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleComplete('${task.id}', this.checked)">
+                            <span class="checkmark"></span>
+                            <span>${task.completed ? 'CONCLUÍDO' : 'MARCAR'}</span>
+                        </label>
+                        ${task.dueDate ? `<span class="task-date">${formatDate(task.dueDate)}</span>` : ''}
+                        ${isOverdue ? `<span class="badge-overdue">⚠ ATRASADA</span>` : ''}
+                    </div>
+                `;
+
+                // Drag Events
+                card.addEventListener('dragstart', (e) => {
+                    draggedTaskId = task.id;
+                    setTimeout(() => card.classList.add('dragging'), 0);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                card.addEventListener('dragend', () => {
+                    draggedTaskId = null;
+                    card.classList.remove('dragging');
+                    document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+                });
+
+                lists[task.status].appendChild(card);
+            });
+
+            // Update Metrics
+            document.getElementById('metric-total').textContent = metrics.total;
+            document.getElementById('metric-doing').textContent = metrics.doing;
+            document.getElementById('metric-done').textContent = metrics.done;
+            document.getElementById('metric-overdue').textContent = metrics.overdue;
+        }
+
+        // DRAG AND DROP ZONES
+        document.querySelectorAll('.kanban-col').forEach(col => {
+            col.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                col.classList.add('drag-over');
+            });
+
+            col.addEventListener('dragleave', () => {
+                col.classList.remove('drag-over');
+            });
+
+            col.addEventListener('drop', (e) => {
+                e.preventDefault();
+                col.classList.remove('drag-over');
+                const newStatus = col.dataset.status;
+                const currentTaskId = draggedTaskId;
+                
+                if (currentTaskId) {
+                    const task = tasks.find(t => t.id === currentTaskId);
+                    if (task && task.status !== newStatus) {
+                        const newCompleted = (newStatus === 'done');
+                        const needsCompleteUpdate = (task.completed !== newCompleted);
+
+                        // Optimistic UI update
+                        task.status = newStatus;
+                        task.completed = newCompleted;
+                        renderBoard();
+                        
+                        // Backend update
+                        if (needsCompleteUpdate) {
+                            fetch(`${API_URL}/tasks/${currentTaskId}/complete`, {
+                                method: 'PATCH',
+                                headers: getAuthHeaders(),
+                                body: JSON.stringify({ completed: newCompleted })
+                            }).then(() => updateTaskStatus(currentTaskId, newStatus));
+                        } else {
+                            updateTaskStatus(currentTaskId, newStatus);
+                        }
+                    }
+                }
+            });
+        });
+
+        // MODAL HANDLERS
+        document.querySelectorAll('.add-task-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                openModal(null, btn.dataset.status);
+            });
+        });
+
+        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
+
+        taskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('task-id').value;
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-desc').value;
+            const dueDate = document.getElementById('task-date').value;
+            const status = document.getElementById('task-status').value;
+
+            const data = { title, description, dueDate };
+            if (!id) data.status = status;
+
+            saveTask(data, id || null);
+        });
+
+        function openModal(taskId = null, defaultStatus = 'todo') {
+            taskAlert.classList.remove('error');
+            taskForm.reset();
+            
+            if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                document.getElementById('modal-title').textContent = 'EDITAR REGISTRO';
+                document.getElementById('task-id').value = task.id;
+                document.getElementById('task-title').value = task.title;
+                document.getElementById('task-desc').value = task.description;
+                document.getElementById('task-date').value = task.dueDate || '';
+                document.getElementById('task-status').value = task.status;
+            } else {
+                document.getElementById('modal-title').textContent = 'NOVO REGISTRO';
+                document.getElementById('task-id').value = '';
+                document.getElementById('task-status').value = defaultStatus;
+            }
+            
+            taskModal.classList.add('active');
+        }
+
+        function closeModal() {
+            taskModal.classList.remove('active');
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag])
+            );
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+
+# Variáveis de Ambiente
+.env
+
+# Banco de Dados (Arquivos Locais)
+data/users.json
+data/tasks.json
+data/access.log
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
